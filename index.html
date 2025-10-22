@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Viral Carousel Generator</title>
+    <link rel="stylesheet" href="index.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.25.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <main>
+      <header>
+        <h1>Viral Carousel Generator</h1>
+        <p>
+          Turn your idea into a 5-slide viral carousel with AI-generated images
+          and captions.
+        </p>
+         <button id="settings-button" title="Open Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </button>
+      </header>
+
+      <form id="idea-form">
+        <label for="idea-input">Enter your carousel topic or idea:</label>
+        <textarea
+          id="idea-input"
+          name="idea"
+          rows="3"
+          placeholder="e.g., '5 tips for better sleep' or 'How to start a successful podcast'"
+          required
+        ></textarea>
+        <button type="submit" id="generate-button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          Generate
+        </button>
+      </form>
+
+      <section id="loading-container" class="hidden" aria-live="polite">
+        <div class="spinner"></div>
+        <p id="loading-text">Starting the creative process...</p>
+      </section>
+
+      <section id="error-container" class="hidden" aria-live="assertive">
+        <p id="error-text"></p>
+      </section>
+
+      <section id="results-container" class="hidden">
+        <div class="results-header">
+            <h2>Your Viral Carousel</h2>
+            <button id="save-pdf-button" title="Save as PDF" class="hidden" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Save as PDF</span>
+            </button>
+        </div>
+        <div id="carousel-grid">
+          <!-- Images will be injected here -->
+        </div>
+
+        <h2>Engaging Caption</h2>
+        <div id="caption-container">
+          <div id="caption-text"></div>
+          <button id="copy-button" title="Copy caption">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>Copy</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <div id="settings-modal-overlay" class="modal-overlay hidden">
+      <div id="settings-modal" class="modal-content" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="modal-header">
+          <h2 id="settings-title">Settings</h2>
+          <button id="close-settings-button" title="Close Settings">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <div class="label-with-help">
+                    <label for="image-prompt-input">Image Prompt System Instruction</label>
+                    <button class="help-button" aria-describedby="image-prompt-tooltip">?</button>
+                    <div id="image-prompt-tooltip" class="tooltip" role="tooltip">
+                      <strong>What this does:</strong> This instruction guides the AI (Gemini 2.5 Pro) to generate 5 specific image prompts for our image model (Nano Banana).<br><br>
+                      <strong>How to prompt:</strong> Clearly define the AI's persona (e.g., "You are an expert viral marketer"). Specify the exact output format you need (e.g., "Return a JSON object with a 'prompts' array"). Provide a step-by-step framework (like the Hook, Problem, Solution structure) and give clear examples of good prompts. The more detailed your instruction, the better the result.
+                    </div>
+                </div>
+              <textarea id="image-prompt-input" class="settings-textarea" rows="10"></textarea>
+            </div>
+            <div class="form-group">
+                <div class="label-with-help">
+                  <label for="caption-prompt-input">Caption System Instruction</label>
+                  <button class="help-button" aria-describedby="caption-prompt-tooltip">?</button>
+                  <div id="caption-prompt-tooltip" class="tooltip" role="tooltip">
+                    <strong>What this does:</strong> This instruction tells the AI how to write a compelling Instagram caption based on the 5 image prompts it just created.<br><br>
+                    <strong>How to prompt:</strong> Define the persona (e.g., "You are an expert Instagram Caption Agent"). List the key qualities of a good caption (e.g., High-Hook, SEO-Optimized, Engaging). Set rules for the output, such as "Output only the post-ready caption without explanation." This ensures the AI's response is clean and ready to use.
+                  </div>
+                </div>
+              <textarea id="caption-prompt-input" class="settings-textarea" rows="10"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="temperature-slider">Gemini 2.5 Pro Temperature</label>
+              <div class="range-slider-group">
+                <input type="range" id="temperature-slider" min="0" max="1" step="0.1">
+                <span id="temperature-value">0.9</span>
+              </div>
+              <p class="setting-description">Controls randomness. Lower values are more deterministic, higher values are more creative.</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button id="reset-settings-button" class="button-secondary">Reset to Defaults</button>
+          <button id="save-settings-button" class="button-primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script type="module" src="index.tsx"></script>
+  </body>
+</html>
