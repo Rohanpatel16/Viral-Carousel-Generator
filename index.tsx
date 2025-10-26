@@ -14,6 +14,7 @@ let ai: GoogleGenAI;
 let currentSlides: CarouselSlide[] = [];
 let imageHistory: Map<number, string[]> = new Map();
 let selectedImageIndices: Map<number, number> = new Map();
+let editingSlideIndex: number | null = null;
 
 
 // --- Main form elements ---
@@ -41,6 +42,14 @@ const imagePromptInput = document.getElementById('image-prompt-input') as HTMLTe
 const captionPromptInput = document.getElementById('caption-prompt-input') as HTMLTextAreaElement;
 const temperatureSlider = document.getElementById('temperature-slider') as HTMLInputElement;
 const temperatureValue = document.getElementById('temperature-value') as HTMLSpanElement;
+
+// --- Edit Prompt Modal Elements ---
+const editPromptModalOverlay = document.getElementById('edit-prompt-modal-overlay') as HTMLDivElement;
+const editPromptTitle = document.getElementById('edit-prompt-title') as HTMLHeadingElement;
+const closeEditPromptButton = document.getElementById('close-edit-prompt-button') as HTMLButtonElement;
+const cancelEditPromptButton = document.getElementById('cancel-edit-prompt-button') as HTMLButtonElement;
+const regenerateFromEditButton = document.getElementById('regenerate-from-edit-button') as HTMLButtonElement;
+const editPromptTextarea = document.getElementById('edit-prompt-textarea') as HTMLTextAreaElement;
 
 // --- Default Settings ---
 const DEFAULT_IMAGE_PROMPT_SYSTEM_INSTRUCTION = `You are an expert Viral Instagram Carousel creator and art director. Your role is to generate the complete content plan for a 5-slide carousel: the visual concepts AND the text for each slide. The entire carousel must be thematically and visually cohesive.
@@ -144,6 +153,16 @@ temperatureSlider.addEventListener('input', () => {
     temperatureValue.textContent = temperatureSlider.value;
 });
 
+// Edit Prompt Modal Listeners
+closeEditPromptButton.addEventListener('click', closeEditPromptModal);
+cancelEditPromptButton.addEventListener('click', closeEditPromptModal);
+editPromptModalOverlay.addEventListener('click', (e) => {
+    if (e.target === editPromptModalOverlay) {
+        closeEditPromptModal();
+    }
+});
+regenerateFromEditButton.addEventListener('click', handleRegenerateFromEdit);
+
 // --- Main Functions ---
 async function handleSubmit(e: Event) {
     e.preventDefault();
@@ -242,16 +261,16 @@ async function generateCaption(slides: CarouselSlide[]): Promise<string> {
 
 async function generateAllImages(slides: CarouselSlide[]): Promise<void> {
     setupImagePlaceholders(slides.length);
-    const imagePromises = slides.map((slide, index) => generateImage(slide, index));
+    const imagePromises = slides.map((slide, index) => generateImage(slide.image_prompt, index));
     await Promise.all(imagePromises);
 }
 
-async function generateImage(slide: CarouselSlide, index: number): Promise<void> {
+async function generateImage(prompt: string, index: number): Promise<void> {
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: {
-                parts: [{ text: slide.image_prompt }]
+                parts: [{ text: prompt }]
             },
             config: {
                 responseModalities: [Modality.IMAGE],
@@ -283,14 +302,19 @@ async function handleRegenerate(index: number) {
     const overlay = container.querySelector('.slide-spinner-overlay') as HTMLDivElement;
     if (overlay) {
         overlay.classList.remove('hidden');
+    } else { // Handle case where it's regenerating from an error state
+        container.innerHTML = `<div class="spinner"></div><span>Regenerating...</span>`;
+        container.className = 'image-placeholder';
     }
-    await generateImage(currentSlides[index], index);
-    if (overlay) {
-        // It might have been removed by renderSlideControls, so check again
-        const currentOverlay = container.querySelector('.slide-spinner-overlay') as HTMLDivElement;
-        if(currentOverlay) {
-             currentOverlay.classList.add('hidden');
-        }
+
+    await generateImage(currentSlides[index].image_prompt, index);
+    
+    // The spinner overlay is part of the final rendered slide, so it will be there.
+    // If we're coming from an error state, renderSlideControls will replace the placeholder.
+    const finalContainer = document.getElementById(`image-container-${index}`) as HTMLDivElement;
+    const finalOverlay = finalContainer.querySelector('.slide-spinner-overlay') as HTMLDivElement;
+    if (finalOverlay) {
+        finalOverlay.classList.add('hidden');
     }
 }
 
@@ -388,21 +412,32 @@ function renderSlideControls(index: number) {
     nextBtn.disabled = currentIndex >= history.length - 1;
     nextBtn.onclick = () => handleCycleImage(index, 'next');
 
-    if (history.length > 0) {
+    if (history.length > 1) {
         historyControls.appendChild(prevBtn);
         historyControls.appendChild(counter);
         historyControls.appendChild(nextBtn);
     }
 
-    // Regenerate button
+    // Action buttons
+    const actionControls = document.createElement('div');
+    actionControls.className = 'action-controls';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'regenerate-btn';
+    editBtn.title = 'Edit Prompt & Regenerate';
+    editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+    editBtn.onclick = () => openEditPromptModal(index);
+
     const regenBtn = document.createElement('button');
     regenBtn.className = 'regenerate-btn';
     regenBtn.title = 'Regenerate Image';
     regenBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`;
     regenBtn.onclick = () => handleRegenerate(index);
 
+    actionControls.appendChild(editBtn);
+    actionControls.appendChild(regenBtn);
     controls.appendChild(historyControls);
-    controls.appendChild(regenBtn);
+    controls.appendChild(actionControls);
 
     // Spinner overlay
     const spinnerOverlay = document.createElement('div');
@@ -419,7 +454,12 @@ function displayError(index: number, message: string) {
     const container = document.getElementById(`image-container-${index}`) as HTMLDivElement;
     if (container) {
         container.className = 'carousel-slide';
-        container.innerHTML = `<div class="error-message">${message}</div>`;
+        container.innerHTML = `
+            <div class="error-message">
+                <span>${message}</span>
+                <button class="retry-button">Retry</button>
+            </div>`;
+        container.querySelector('.retry-button')?.addEventListener('click', () => handleRegenerate(index));
     }
 }
 
@@ -459,6 +499,37 @@ function resetSettingsToDefaults() {
         loadSettings(); // Reload defaults into the form
         alert('Settings have been reset to default.');
     }
+}
+
+// --- Edit Prompt Modal Functions ---
+function openEditPromptModal(index: number) {
+    editingSlideIndex = index;
+    editPromptTitle.textContent = `Edit & Regenerate Slide ${index + 1}`;
+    editPromptTextarea.value = currentSlides[index].image_prompt;
+    editPromptModalOverlay.classList.remove('hidden');
+    editPromptTextarea.focus();
+}
+
+function closeEditPromptModal() {
+    editingSlideIndex = null;
+    editPromptModalOverlay.classList.add('hidden');
+}
+
+async function handleRegenerateFromEdit() {
+    if (editingSlideIndex === null) return;
+
+    const newPrompt = editPromptTextarea.value.trim();
+    if (!newPrompt) {
+        alert('Prompt cannot be empty.');
+        return;
+    }
+    const currentIndex = editingSlideIndex; // Store index before closing modal
+    
+    // Update the central source of truth
+    currentSlides[currentIndex].image_prompt = newPrompt;
+    
+    closeEditPromptModal();
+    await handleRegenerate(currentIndex);
 }
 
 

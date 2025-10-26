@@ -233,6 +233,26 @@ header p {
     padding: 1rem;
     text-align: center;
     color: var(--error-color);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.retry-button {
+    background-color: var(--error-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s;
+}
+
+.retry-button:hover {
+    opacity: 0.8;
 }
 
 #caption-container {
@@ -383,6 +403,11 @@ header p {
     background-color: rgba(20, 20, 20, 0.8);
 }
 
+.action-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 
 .slide-spinner-overlay {
     position: absolute;
@@ -442,7 +467,8 @@ header p {
   color: var(--on-surface-color);
 }
 
-#close-settings-button {
+#close-settings-button,
+#close-edit-prompt-button {
   background: none;
   border: none;
   color: var(--on-background-color);
