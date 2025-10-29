@@ -237,6 +237,7 @@ async function generatePrompts(topic: string): Promise<CarouselSlide[]> {
                 },
                 required: ['slides'],
             },
+            thinkingConfig: {},
         },
     });
     const json = JSON.parse(response.text);
@@ -254,6 +255,7 @@ async function generateCaption(slides: CarouselSlide[]): Promise<string> {
         config: {
             temperature: parseFloat(localStorage.getItem('temperature') || '0.9'),
             systemInstruction: localStorage.getItem('captionPrompt') || DEFAULT_CAPTION_SYSTEM_INSTRUCTION,
+            thinkingConfig: {},
         },
     });
     return response.text.trim();
